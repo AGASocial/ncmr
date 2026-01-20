@@ -12,12 +12,8 @@ export default function NCMRApp() {
         partNumber: '',
         partName: '',
         quantity: '',
-        supplier: '',
         lotNumber: '',
         defectDescription: '',
-        severity: 'minor',
-        reportedBy: '',
-        department: '',
         dispositionAction: ''
     });
 
@@ -51,12 +47,8 @@ export default function NCMRApp() {
             partNumber: '',
             partName: '',
             quantity: '',
-            supplier: '',
             lotNumber: '',
             defectDescription: '',
-            severity: 'minor',
-            reportedBy: '',
-            department: '',
             dispositionAction: ''
         });
         setShowForm(false);
@@ -71,11 +63,11 @@ export default function NCMRApp() {
     };
 
     const deleteNcmr = (id) => {
-        if (confirm('¿Estás seguro de eliminar este NCMR?')) {
+        if (window.confirm('Are you sure you want to delete this NCMR?')) {
             const updated = ncmrs.filter(ncmr => ncmr.id !== id);
+            setSelectedNcmr(null);
             setNcmrs(updated);
             saveToStorage(updated);
-            setSelectedNcmr(null);
         }
     };
 
@@ -83,8 +75,7 @@ export default function NCMRApp() {
         const matchesSearch =
             ncmr.ncmrNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
             ncmr.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            ncmr.partName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            ncmr.supplier.toLowerCase().includes(searchTerm.toLowerCase());
+            ncmr.partName.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesFilter = filterStatus === 'all' || ncmr.status === filterStatus;
 
@@ -121,7 +112,7 @@ export default function NCMRApp() {
             <div className="max-w-7xl mx-auto p-6">
                 {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-gray-800 mb-2">Sistema NCMR</h1>
+                    <h1 className="text-4xl font-bold text-gray-800 mb-2">NCMR System</h1>
                     <p className="text-gray-600">Non-Conformance Material Reports</p>
                 </div>
 
@@ -132,15 +123,15 @@ export default function NCMRApp() {
                         <div className="text-3xl font-bold text-gray-800">{stats.total}</div>
                     </div>
                     <div className="bg-white rounded-lg shadow p-4">
-                        <div className="text-sm text-gray-600">Abiertos</div>
+                        <div className="text-sm text-gray-600">Open</div>
                         <div className="text-3xl font-bold text-red-600">{stats.open}</div>
                     </div>
                     <div className="bg-white rounded-lg shadow p-4">
-                        <div className="text-sm text-gray-600">En Proceso</div>
+                        <div className="text-sm text-gray-600">In Progress</div>
                         <div className="text-3xl font-bold text-yellow-600">{stats.inProgress}</div>
                     </div>
                     <div className="bg-white rounded-lg shadow p-4">
-                        <div className="text-sm text-gray-600">Cerrados</div>
+                        <div className="text-sm text-gray-600">Closed</div>
                         <div className="text-3xl font-bold text-green-600">{stats.closed}</div>
                     </div>
                 </div>
@@ -152,7 +143,7 @@ export default function NCMRApp() {
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <input
                                 type="text"
-                                placeholder="Buscar por número, parte, o proveedor..."
+                                placeholder="Search by number, part..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -164,10 +155,10 @@ export default function NCMRApp() {
                             onChange={(e) => setFilterStatus(e.target.value)}
                             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
-                            <option value="all">Todos los estados</option>
-                            <option value="open">Abiertos</option>
-                            <option value="in-progress">En Proceso</option>
-                            <option value="closed">Cerrados</option>
+                            <option value="all">All Statuses</option>
+                            <option value="open">Open</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="closed">Closed</option>
                         </select>
 
                         <button
@@ -175,7 +166,7 @@ export default function NCMRApp() {
                             className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-md"
                         >
                             <Plus className="w-5 h-5" />
-                            Nuevo NCMR
+                            New NCMR
                         </button>
                     </div>
                 </div>
@@ -191,28 +182,19 @@ export default function NCMRApp() {
                             <div className="flex items-start justify-between mb-3">
                                 <div>
                                     <h3 className="text-lg font-bold text-gray-800">{ncmr.ncmrNumber}</h3>
-                                    <p className="text-sm text-gray-600">{new Date(ncmr.createdAt).toLocaleDateString('es-ES')}</p>
+                                    <p className="text-sm text-gray-600">{new Date(ncmr.createdAt).toLocaleDateString('en-US')}</p>
                                 </div>
                                 {getStatusIcon(ncmr.status)}
                             </div>
 
                             <div className="space-y-2">
                                 <div>
-                                    <span className="text-sm font-semibold text-gray-700">Parte:</span>
+                                    <span className="text-sm font-semibold text-gray-700">Part:</span>
                                     <span className="text-sm text-gray-600 ml-2">{ncmr.partNumber} - {ncmr.partName}</span>
                                 </div>
                                 <div>
-                                    <span className="text-sm font-semibold text-gray-700">Proveedor:</span>
-                                    <span className="text-sm text-gray-600 ml-2">{ncmr.supplier}</span>
-                                </div>
-                                <div>
-                                    <span className="text-sm font-semibold text-gray-700">Cantidad:</span>
+                                    <span className="text-sm font-semibold text-gray-700">Quantity:</span>
                                     <span className="text-sm text-gray-600 ml-2">{ncmr.quantity}</span>
-                                </div>
-                                <div className="flex items-center gap-2 mt-3">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getSeverityColor(ncmr.severity)}`}>
-                                        {ncmr.severity === 'critical' ? 'Crítico' : ncmr.severity === 'major' ? 'Mayor' : 'Menor'}
-                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -222,8 +204,8 @@ export default function NCMRApp() {
                 {filteredNcmrs.length === 0 && (
                     <div className="text-center py-12 bg-white rounded-lg shadow">
                         <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-gray-700 mb-2">No se encontraron NCMRs</h3>
-                        <p className="text-gray-600">Intenta ajustar los filtros o crea un nuevo NCMR</p>
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">No NCMRs Found</h3>
+                        <p className="text-gray-600">Try adjusting the filters or create a new NCMR</p>
                     </div>
                 )}
 
@@ -232,7 +214,7 @@ export default function NCMRApp() {
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                         <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
                             <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
-                                <h2 className="text-2xl font-bold text-gray-800">Nuevo NCMR</h2>
+                                <h2 className="text-2xl font-bold text-gray-800">New NCMR</h2>
                                 <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-700">
                                     <X className="w-6 h-6" />
                                 </button>
@@ -242,7 +224,7 @@ export default function NCMRApp() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                            Número de Parte *
+                                            Part Number *
                                         </label>
                                         <input
                                             type="text"
@@ -255,7 +237,7 @@ export default function NCMRApp() {
 
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                            Nombre de Parte *
+                                            Part Name *
                                         </label>
                                         <input
                                             type="text"
@@ -268,7 +250,7 @@ export default function NCMRApp() {
 
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                            Cantidad *
+                                            Quantity *
                                         </label>
                                         <input
                                             type="number"
@@ -281,20 +263,7 @@ export default function NCMRApp() {
 
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                            Proveedor *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={formData.supplier}
-                                            onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                            Número de Lote
+                                            Lot Number
                                         </label>
                                         <input
                                             type="text"
@@ -303,53 +272,11 @@ export default function NCMRApp() {
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                     </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                            Severidad *
-                                        </label>
-                                        <select
-                                            required
-                                            value={formData.severity}
-                                            onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        >
-                                            <option value="minor">Menor</option>
-                                            <option value="major">Mayor</option>
-                                            <option value="critical">Crítico</option>
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                            Reportado Por *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={formData.reportedBy}
-                                            onChange={(e) => setFormData({ ...formData, reportedBy: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                            Departamento *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={formData.department}
-                                            onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        />
-                                    </div>
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                        Descripción del Defecto *
+                                        Defect Description *
                                     </label>
                                     <textarea
                                         required
@@ -362,14 +289,25 @@ export default function NCMRApp() {
 
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                        Acción de Disposición
+                                        Disposition Action
                                     </label>
+                                    {/* TODO: Add Disposition Action checkbox list: Sort, Use As Is, Scrap, Rework */}
+                                    <div className="flex gap-2" onChange={(e) => setFormData({ ...formData, dispositionAction: e.target.value })}>
+                                        <input type="checkbox" value="Sort.  " />
+                                        <label>Sort</label>
+                                        <input type="checkbox" value="Use As Is. " />
+                                        <label>Use As Is</label>
+                                        <input type="checkbox" value="Scrap. " />
+                                        <label>Scrap</label>
+                                        <input type="checkbox" value="Rework. " />
+                                        <label>Rework</label>
+                                    </div>
                                     <textarea
                                         rows="3"
                                         value={formData.dispositionAction}
                                         onChange={(e) => setFormData({ ...formData, dispositionAction: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        placeholder="Use as-is, Rework, Scrap, Return to vendor..."
+                                        placeholder="Additional information..."
                                     />
                                 </div>
 
@@ -378,14 +316,14 @@ export default function NCMRApp() {
                                         type="submit"
                                         className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
                                     >
-                                        Crear NCMR
+                                        Create NCMR
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setShowForm(false)}
                                         className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
                                     >
-                                        Cancelar
+                                        Cancel
                                     </button>
                                 </div>
                             </form>
@@ -406,72 +344,57 @@ export default function NCMRApp() {
 
                             <div className="p-6 space-y-6">
                                 <div className="flex items-center gap-4">
-                                    <span className={`px-4 py-2 rounded-full text-sm font-semibold border ${getSeverityColor(selectedNcmr.severity)}`}>
-                                        {selectedNcmr.severity === 'critical' ? 'Crítico' : selectedNcmr.severity === 'major' ? 'Mayor' : 'Menor'}
-                                    </span>
                                     <div className="flex-1">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Estado</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Status</label>
                                         <select
                                             value={selectedNcmr.status}
                                             onChange={(e) => updateStatus(selectedNcmr.id, e.target.value)}
                                             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         >
-                                            <option value="open">Abierto</option>
-                                            <option value="in-progress">En Proceso</option>
-                                            <option value="closed">Cerrado</option>
+                                            <option value="open">Open</option>
+                                            <option value="in-progress">In Progress</option>
+                                            <option value="closed">Closed</option>
                                         </select>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <p className="text-sm font-semibold text-gray-700">Creado</p>
-                                        <p className="text-gray-900">{new Date(selectedNcmr.createdAt).toLocaleString('es-ES')}</p>
+                                        <p className="text-sm font-semibold text-gray-700">Created</p>
+                                        <p className="text-gray-900">{new Date(selectedNcmr.createdAt).toLocaleString('en-US')}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm font-semibold text-gray-700">Reportado Por</p>
-                                        <p className="text-gray-900">{selectedNcmr.reportedBy}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-semibold text-gray-700">Departamento</p>
-                                        <p className="text-gray-900">{selectedNcmr.department}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-semibold text-gray-700">Número de Lote</p>
+                                        <p className="text-sm font-semibold text-gray-700">Lot Number</p>
                                         <p className="text-gray-900">{selectedNcmr.lotNumber || 'N/A'}</p>
                                     </div>
                                 </div>
 
                                 <div className="border-t pt-4">
-                                    <h3 className="text-lg font-bold text-gray-800 mb-3">Información del Producto</h3>
+                                    <h3 className="text-lg font-bold text-gray-800 mb-3">Product Information</h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <p className="text-sm font-semibold text-gray-700">Número de Parte</p>
+                                            <p className="text-sm font-semibold text-gray-700">Part Number</p>
                                             <p className="text-gray-900">{selectedNcmr.partNumber}</p>
                                         </div>
                                         <div>
-                                            <p className="text-sm font-semibold text-gray-700">Nombre de Parte</p>
+                                            <p className="text-sm font-semibold text-gray-700">Part Name</p>
                                             <p className="text-gray-900">{selectedNcmr.partName}</p>
                                         </div>
                                         <div>
-                                            <p className="text-sm font-semibold text-gray-700">Proveedor</p>
-                                            <p className="text-gray-900">{selectedNcmr.supplier}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-semibold text-gray-700">Cantidad</p>
+                                            <p className="text-sm font-semibold text-gray-700">Quantity</p>
                                             <p className="text-gray-900">{selectedNcmr.quantity}</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="border-t pt-4">
-                                    <h3 className="text-lg font-bold text-gray-800 mb-2">Descripción del Defecto</h3>
+                                    <h3 className="text-lg font-bold text-gray-800 mb-2">Defect Description</h3>
                                     <p className="text-gray-900 bg-gray-50 p-4 rounded-lg">{selectedNcmr.defectDescription}</p>
                                 </div>
 
                                 {selectedNcmr.dispositionAction && (
                                     <div className="border-t pt-4">
-                                        <h3 className="text-lg font-bold text-gray-800 mb-2">Acción de Disposición</h3>
+                                        <h3 className="text-lg font-bold text-gray-800 mb-2">Disposition Action</h3>
                                         <p className="text-gray-900 bg-gray-50 p-4 rounded-lg">{selectedNcmr.dispositionAction}</p>
                                     </div>
                                 )}
@@ -481,13 +404,13 @@ export default function NCMRApp() {
                                         onClick={() => deleteNcmr(selectedNcmr.id)}
                                         className="bg-red-600 text-white py-2 px-6 rounded-lg hover:bg-red-700 transition-colors font-semibold"
                                     >
-                                        Eliminar NCMR
+                                        Delete NCMR
                                     </button>
                                     <button
                                         onClick={() => setSelectedNcmr(null)}
                                         className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
                                     >
-                                        Cerrar
+                                        Close
                                     </button>
                                 </div>
                             </div>
