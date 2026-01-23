@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, AlertCircle, CheckCircle, Clock, Search } from 'lucide-react';
+import { X, Plus, AlertCircle, CheckCircle, Clock, Search, Lock } from 'lucide-react';
+
+// Simple password for app access - change this to your desired password
+const APP_PASSWORD = 'ncmr';
 
 export default function NCMRApp() {
+    const [isAuthenticated, setIsAuthenticated] = useState(() => {
+        return localStorage.getItem('ncmr_auth') === 'true';
+    });
+    const [passwordInput, setPasswordInput] = useState('');
+    const [authError, setAuthError] = useState('');
+
     const [ncmrs, setNcmrs] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -231,6 +240,23 @@ export default function NCMRApp() {
         }
     };
 
+    const handleLogin = (e) => {
+        e.preventDefault();
+        if (passwordInput === APP_PASSWORD) {
+            localStorage.setItem('ncmr_auth', 'true');
+            setIsAuthenticated(true);
+            setAuthError('');
+        } else {
+            setAuthError('Incorrect password. Please try again.');
+        }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('ncmr_auth');
+        setIsAuthenticated(false);
+        setPasswordInput('');
+    };
+
     const stats = {
         total: ncmrs.length,
         open: ncmrs.filter(n => n.status === 'open').length,
@@ -238,13 +264,64 @@ export default function NCMRApp() {
         closed: ncmrs.filter(n => n.status === 'closed').length
     };
 
+    // Show login screen if not authenticated
+    if (!isAuthenticated) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+                <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+                    <div className="text-center mb-6">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                            <Lock className="w-8 h-8 text-blue-600" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-gray-800">NCMR System</h1>
+                        <p className="text-gray-600">Enter password to access</p>
+                    </div>
+
+                    <form onSubmit={handleLogin} className="space-y-4">
+                        <div>
+                            <input
+                                type="password"
+                                placeholder="Enter password"
+                                value={passwordInput}
+                                onChange={(e) => setPasswordInput(e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg"
+                                autoFocus
+                            />
+                        </div>
+
+                        {authError && (
+                            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                                {authError}
+                            </div>
+                        )}
+
+                        <button
+                            type="submit"
+                            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                        >
+                            Enter
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
             <div className="max-w-7xl mx-auto p-6">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-gray-800 mb-2">NCMR System</h1>
-                    <p className="text-gray-600">Non-Conformance Material Reports</p>
+                <div className="mb-8 flex items-center justify-between">
+                    <div>
+                        <h1 className="text-4xl font-bold text-gray-800 mb-2">NCMR System</h1>
+                        <p className="text-gray-600">Non-Conformance Material Reports</p>
+                    </div>
+                    <button
+                        onClick={handleLogout}
+                        className="text-sm text-gray-500 hover:text-gray-700 underline"
+                    >
+                        Logout
+                    </button>
                 </div>
 
                 {/* Stats */}
@@ -485,8 +562,8 @@ export default function NCMRApp() {
                                         type="submit"
                                         disabled={isSubmitting}
                                         className={`flex-1 py-2 px-4 rounded-lg transition-colors font-semibold ${isSubmitting
-                                                ? 'bg-blue-400 text-white cursor-not-allowed'
-                                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                                            ? 'bg-blue-400 text-white cursor-not-allowed'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700'
                                             }`}
                                     >
                                         {isSubmitting ? 'Submitting...' : 'Create NCMR'}
