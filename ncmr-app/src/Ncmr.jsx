@@ -7,6 +7,24 @@ export default function NCMRApp() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [selectedNcmr, setSelectedNcmr] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [loadError, setLoadError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
+    const [statusError, setStatusError] = useState('');
+
+    const getApiConfig = () => {
+        const apiUrl = "https://n8n.aga.social/webhook/1ab2b5db-3984-474f-8aab-e900a8370149".trim();
+        const apiUser = "2qy53htsbgqy54uw6jtrnsdf".trim();
+        const apiPass = "gawreoigoidsfhvbqaw34gtqa3w".trim();
+
+        if (!apiUrl || !apiUser || !apiPass) {
+            throw new Error('Missing NCMR API configuration.');
+        }
+
+        const auth = btoa(`${apiUser}:${apiPass}`);
+        return { apiUrl, auth };
+    };
 
     const [formData, setFormData] = useState({
         partNumber: '',
@@ -14,52 +32,166 @@ export default function NCMRApp() {
         quantity: '',
         lotNumber: '',
         defectDescription: '',
-        dispositionAction: ''
+        dispositionAction: '',
+        status: 'open'
     });
 
     useEffect(() => {
-        const stored = localStorage.getItem('ncmrs');
-        if (stored) {
-            setNcmrs(JSON.parse(stored));
-        }
-    }, []);
+        const fetchNcmrs = async () => {
+            setIsLoading(true);
+            setLoadError('');
 
-    const saveToStorage = (data) => {
-        localStorage.setItem('ncmrs', JSON.stringify(data));
-    };
+            try {
+                const { apiUrl, auth } = getApiConfig();
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        Authorization: `Basic ${auth}`
+                    }
+                });
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    const detail = errorText ? ` ${errorText}` : '';
+                    throw new Error(`Failed to load NCMRs (HTTP ${response.status}).${detail}`);
+                }
 
-        const newNcmr = {
-            id: Date.now(),
-            ...formData,
-            status: 'open',
-            createdAt: new Date().toISOString(),
-            ncmrNumber: `NCMR-${String(ncmrs.length + 1).padStart(5, '0')}`
+                const payload = await response.json();
+                const records = Array.isArray(payload?.data) ? payload.data : [];
+                const mapped = records.map((item) => ({
+                    id: item.id,
+                    partNumber: item.part_number ?? '',
+                    partName: item.part_name ?? '',
+                    quantity: item.quantity ?? '',
+                    lotNumber: item.lot_number ?? '',
+                    defectDescription: item.defect_description ?? '',
+                    dispositionAction: item.disposition_action ?? '',
+                    status: item.status ?? 'open',
+                    createdAt: item.created_at
+                        ? new Date(item.created_at).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })
+                        : new Date().toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' }),
+                    // ncmrNumber: item.ncmr_number ?? `NCMR-${String(item.id).padStart(5, '0')}`
+                    ncmrNumber: item.part_number ?? `NCMR-${String(item.id).padStart(5, '0')}`
+                }));
+
+                setNcmrs(mapped);
+            } catch (err) {
+                setLoadError(err instanceof Error ? err.message : 'Failed to load NCMRs.');
+            } finally {
+                setIsLoading(false);
+            }
         };
 
-        const updated = [newNcmr, ...ncmrs];
-        setNcmrs(updated);
-        saveToStorage(updated);
+        fetchNcmrs();
+    }, []);
 
-        setFormData({
-            partNumber: '',
-            partName: '',
-            quantity: '',
-            lotNumber: '',
-            defectDescription: '',
-            dispositionAction: ''
-        });
-        setShowForm(false);
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        setIsSubmitting(true);
+        setSubmitError('');
+
+        try {
+            const { apiUrl, auth } = getApiConfig();
+            const payload = {
+                partNumber: formData.partNumber,
+                partName: formData.partName,
+                quantity: Number(formData.quantity),
+                lotNumber: formData.lotNumber,
+                defectDescription: formData.defectDescription,
+                dispositionAction: formData.dispositionAction
+            };
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Basic ${auth}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                const detail = errorText ? ` ${errorText}` : '';
+                throw new Error(`Failed to submit NCMR (HTTP ${response.status}).${detail}`);
+            }
+
+            const result = await response.json();
+            const item = result?.data;
+            const created = item ? {
+                id: item.id,
+                partNumber: item.part_number ?? payload.partNumber,
+                partName: item.part_name ?? payload.partName,
+                quantity: item.quantity ?? payload.quantity,
+                lotNumber: item.lot_number ?? payload.lotNumber,
+                defectDescription: item.defect_description ?? payload.defectDescription,
+                dispositionAction: item.disposition_action ?? payload.dispositionAction,
+                status: item.status ?? 'open',
+                createdAt: item.created_at ?? new Date().toISOString(),
+                ncmrNumber: item.ncmr_number ?? `NCMR-${String(item.id ?? ncmrs.length + 1).padStart(5, '0')}`
+            } : {
+                id: Date.now(),
+                ...formData,
+                status: 'open',
+                createdAt: new Date().toISOString(),
+                ncmrNumber: `NCMR-${String(ncmrs.length + 1).padStart(5, '0')}`
+            };
+
+            const updated = [created, ...ncmrs];
+            setNcmrs(updated);
+
+            setFormData({
+                partNumber: '',
+                partName: '',
+                quantity: '',
+                lotNumber: '',
+                defectDescription: '',
+                dispositionAction: ''
+            });
+            setShowForm(false);
+        } catch (err) {
+            setSubmitError(err instanceof Error ? err.message : 'Failed to submit NCMR.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
-    const updateStatus = (id, newStatus) => {
+    const updateStatus = async (id, newStatus) => {
+        const previous = ncmrs;
+        const previousStatus = ncmrs.find((ncmr) => ncmr.id === id)?.status ?? 'open';
         const updated = ncmrs.map(ncmr =>
             ncmr.id === id ? { ...ncmr, status: newStatus } : ncmr
         );
+
+        setStatusError('');
         setNcmrs(updated);
-        saveToStorage(updated);
+        if (selectedNcmr?.id === id) {
+            setSelectedNcmr({ ...selectedNcmr, status: newStatus });
+        }
+
+        try {
+            const { apiUrl, auth } = getApiConfig();
+            const response = await fetch(apiUrl, {
+                method: 'PUT',
+                headers: {
+                    Authorization: `Basic ${auth}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id, status: newStatus })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                const detail = errorText ? ` ${errorText}` : '';
+                throw new Error(`Failed to update status (HTTP ${response.status}).${detail}`);
+            }
+        } catch (err) {
+            setNcmrs(previous);
+            if (selectedNcmr?.id === id) {
+                setSelectedNcmr({ ...selectedNcmr, status: previousStatus });
+            }
+            setStatusError(err instanceof Error ? err.message : 'Failed to update status.');
+        }
     };
 
     const deleteNcmr = (id) => {
@@ -67,7 +199,6 @@ export default function NCMRApp() {
             const updated = ncmrs.filter(ncmr => ncmr.id !== id);
             setSelectedNcmr(null);
             setNcmrs(updated);
-            saveToStorage(updated);
         }
     };
 
@@ -173,6 +304,16 @@ export default function NCMRApp() {
 
                 {/* NCMR List */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {isLoading && (
+                        <div className="col-span-full text-center py-6 bg-white rounded-lg shadow text-gray-600">
+                            Loading NCMRs...
+                        </div>
+                    )}
+                    {loadError && !isLoading && (
+                        <div className="col-span-full text-center py-6 bg-white rounded-lg shadow text-red-600">
+                            {loadError}
+                        </div>
+                    )}
                     {filteredNcmrs.map(ncmr => (
                         <div
                             key={ncmr.id}
@@ -181,27 +322,49 @@ export default function NCMRApp() {
                         >
                             <div className="flex items-start justify-between mb-3">
                                 <div>
-                                    <h3 className="text-lg font-bold text-gray-800">{ncmr.ncmrNumber}</h3>
-                                    <p className="text-sm text-gray-600">{new Date(ncmr.createdAt).toLocaleDateString('en-US')}</p>
+                                    <h3 className="text-lg font-bold text-gray-800">{ncmr.partNumber} - {ncmr.partName}</h3>
+                                    <p className="text-sm text-gray-600">{ncmr.createdAt}</p>
                                 </div>
-                                {getStatusIcon(ncmr.status)}
+                                <div>
+                                    <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">{ncmr.status} {getStatusIcon(ncmr.status)}</span>
+                                </div>
+
                             </div>
 
                             <div className="space-y-2">
                                 <div>
-                                    <span className="text-sm font-semibold text-gray-700">Part:</span>
-                                    <span className="text-sm text-gray-600 ml-2">{ncmr.partNumber} - {ncmr.partName}</span>
+                                    <span className="text-sm font-semibold text-gray-700">Part Number:</span>
+                                    <span className="text-sm text-gray-600 ml-2">{ncmr.partNumber}</span>
+                                </div>
+                                <div>
+                                    <span className="text-sm font-semibold text-gray-700">Part Name:</span>
+                                    <span className="text-sm text-gray-600 ml-2">{ncmr.partName}</span>
                                 </div>
                                 <div>
                                     <span className="text-sm font-semibold text-gray-700">Quantity:</span>
                                     <span className="text-sm text-gray-600 ml-2">{ncmr.quantity}</span>
+                                </div>
+
+                                <div>
+                                    <span className="text-sm font-semibold text-gray-700">Lot Number:</span>
+                                    <span className="text-sm text-gray-600 ml-2">{ncmr.lotNumber}</span>
+                                </div>
+
+                                <div>
+                                    <span className="text-sm font-semibold text-gray-700">Defect Description:</span>
+                                    <span className="text-sm text-gray-600 ml-2">{ncmr.defectDescription}</span>
+                                </div>
+
+                                <div>
+                                    <span className="text-sm font-semibold text-gray-700">Disposition Action:</span>
+                                    <span className="text-sm text-gray-600 ml-2">{ncmr.dispositionAction}</span>
                                 </div>
                             </div>
                         </div>
                     ))}
                 </div>
 
-                {filteredNcmrs.length === 0 && (
+                {!isLoading && !loadError && filteredNcmrs.length === 0 && (
                     <div className="text-center py-12 bg-white rounded-lg shadow">
                         <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-xl font-semibold text-gray-700 mb-2">No NCMRs Found</h3>
@@ -311,12 +474,22 @@ export default function NCMRApp() {
                                     />
                                 </div>
 
+                                {submitError && (
+                                    <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+                                        {submitError}
+                                    </div>
+                                )}
+
                                 <div className="flex gap-3 pt-4">
                                     <button
                                         type="submit"
-                                        className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                                        disabled={isSubmitting}
+                                        className={`flex-1 py-2 px-4 rounded-lg transition-colors font-semibold ${isSubmitting
+                                                ? 'bg-blue-400 text-white cursor-not-allowed'
+                                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                                            }`}
                                     >
-                                        Create NCMR
+                                        {isSubmitting ? 'Submitting...' : 'Create NCMR'}
                                     </button>
                                     <button
                                         type="button"
@@ -357,6 +530,11 @@ export default function NCMRApp() {
                                         </select>
                                     </div>
                                 </div>
+                                {statusError && (
+                                    <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+                                        {statusError}
+                                    </div>
+                                )}
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -400,12 +578,12 @@ export default function NCMRApp() {
                                 )}
 
                                 <div className="flex gap-3 pt-4 border-t">
-                                    <button
+                                    {/* <button
                                         onClick={() => deleteNcmr(selectedNcmr.id)}
                                         className="bg-red-600 text-white py-2 px-6 rounded-lg hover:bg-red-700 transition-colors font-semibold"
                                     >
                                         Delete NCMR
-                                    </button>
+                                    </button> */}
                                     <button
                                         onClick={() => setSelectedNcmr(null)}
                                         className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
