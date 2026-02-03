@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, AlertCircle, CheckCircle, Clock, Search, Lock } from 'lucide-react';
+import { X, Plus, AlertCircle, CheckCircle, Clock, Search, Lock, Printer } from 'lucide-react';
 
 // Simple password for app access - change this to your desired password
 const APP_PASSWORD = 'ncmr';
@@ -264,6 +264,58 @@ export default function NCMRApp() {
         closed: ncmrs.filter(n => n.status === 'closed').length
     };
 
+    const handlePrint = () => {
+        const columns = [
+            { key: 'partNumber', label: 'Part Number' },
+            { key: 'partName', label: 'Part Name' },
+            { key: 'quantity', label: 'Quantity' },
+            { key: 'lotNumber', label: 'Lot Number' },
+            { key: 'defectDescription', label: 'Defect Description' },
+            { key: 'dispositionAction', label: 'Disposition Action' },
+            { key: 'status', label: 'Status' },
+            { key: 'createdAt', label: 'Created' }
+        ];
+        const rows = filteredNcmrs.map(ncmr =>
+            columns.map(col => {
+                const value = ncmr[col.key] ?? '';
+                return `<td>${String(value).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
+            }).join('')
+        );
+        const headerRow = `<tr>${columns.map(c => `<th>${c.label}</th>`).join('')}</tr>`;
+        const dataRows = rows.map(r => `<tr>${r}</tr>`).join('');
+        const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>NCMR List</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 16px; }
+    table { border-collapse: collapse; width: 100%; font-size: 12px; }
+    th, td { border: 1px solid #333; padding: 6px 8px; text-align: left; }
+    th { background: #1e40af; color: white; font-weight: 600; }
+    tr:nth-child(even) { background: #f3f4f6; }
+    h1 { margin: 0 0 12px 0; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <h1>NCMR List</h1>
+  <p>Generated ${new Date().toLocaleString('en-US')} — ${filteredNcmrs.length} record(s)</p>
+  <table>
+    <thead>${headerRow}</thead>
+    <tbody>${dataRows}</tbody>
+  </table>
+</body>
+</html>`;
+        const w = window.open('', '_blank');
+        if (w) {
+            w.document.write(html);
+            w.document.close();
+            w.focus();
+            w.onload = () => w.print();
+        }
+    };
+
     // Show login screen if not authenticated
     if (!isAuthenticated) {
         return (
@@ -369,6 +421,14 @@ export default function NCMRApp() {
                             <option value="closed">Closed</option>
                         </select>
 
+                        <button
+                            type="button"
+                            onClick={handlePrint}
+                            className="flex items-center gap-2 bg-gray-100 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-200 transition-colors border border-gray-300"
+                        >
+                            <Printer className="w-5 h-5" />
+                            Print
+                        </button>
                         <button
                             onClick={() => setShowForm(true)}
                             className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-md"
